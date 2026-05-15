@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import { getMetricasHorarias, getMostradores, getSedes } from '@/analitics/infrastructure/analytics.api.js'
+import { getMetricasHorarias, getMostradores } from '@/analitics/infrastructure/analytics.api.js'
+import {getSedes} from '@/location/infrastructure/location.api.js'
 import { getTodayTickets } from '@/queue/infrastructure/queue.api.js'
 
 export const useAnalyticsStore = defineStore('analytics', () => {
