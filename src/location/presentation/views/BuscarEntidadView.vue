@@ -209,19 +209,19 @@ function serviciosBySede(sedeId) {
         <div v-else class="sede-list">
           <article
               v-for="sede in selectedInstitution.sedes"
-              :key="sede.id"
+              :key="`sede-${sede.id}`"
               class="sede-card"
           >
             <div class="sede-info">
               <h3>{{ sede.nombre }}</h3>
-              <p>{{ sede.direccion }}</p>
-              <span>{{ sede.distrito }}</span>
+              <p>{{ sede.direccion || 'Sin dirección registrada' }}</p>
+              <span>{{ sede.distrito || sede.distrito_id || 'General' }}</span>
             </div>
 
             <div class="service-list">
               <button
                   v-for="service in serviciosBySede(sede.id)"
-                  :key="service.id"
+                  :key="`service-${service.id}`"
                   class="service-btn"
                   :disabled="creatingId === `${sede.id}-${service.id}`"
                   @click="generateTicket(selectedInstitution, sede, service)"
