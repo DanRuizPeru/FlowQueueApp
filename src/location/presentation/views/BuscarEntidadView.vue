@@ -68,7 +68,9 @@ const catalogCards = computed(() => {
 })
 
 function openSedes(item) {
-  selectedInstitution.value = item
+  // Buscamos la versión más reciente del item en nuestro computed para evitar datos viejos
+  const freshItem = catalogCards.value.find(c => c.id === item.id)
+  selectedInstitution.value = freshItem || item
 }
 
 function closeSedes() {
@@ -108,6 +110,7 @@ async function generateTicket(institution, sede, service) {
 }
 
 function serviciosBySede(sedeId) {
+  if (!location.servicios) return []
   return location.servicios.filter(
       service => String(service.sedeId ?? service.sede_id) === String(sedeId)
   )
