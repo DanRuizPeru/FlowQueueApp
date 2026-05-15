@@ -32,11 +32,11 @@ function applySearch() {
 const catalogCards = computed(() => {
   const institutions = location.instituciones.map((institution, index) => {
     const sedes = location.sedes.filter(
-        sede => String(sede.institucionId) === String(institution.id)
+        sede => String(sede.institucionId ?? sede.institucion_id) === String(institution.id)
     )
 
     const servicios = location.servicios.filter(service =>
-        sedes.some(sede => String(sede.id) === String(service.sedeId))
+        sedes.some(sede => String(sede.id) === String(service.sedeId ?? service.sede_id))
     )
 
     const type =
@@ -109,7 +109,7 @@ async function generateTicket(institution, sede, service) {
 
 function serviciosBySede(sedeId) {
   return location.servicios.filter(
-      service => String(service.sedeId) === String(sedeId)
+      service => String(service.sedeId ?? service.sede_id) === String(sedeId)
   )
 }
 </script>
