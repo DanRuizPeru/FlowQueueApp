@@ -25,10 +25,10 @@ async function loadDashboard() {
     const userId = auth.user?.id
 
     const [citizenTickets, sedeList, serviceList, notes] = await Promise.all([
-      http.get(`/turnos?ciudadano_dni=${encodeURIComponent(dni)}`),
+      http.get(`/turnos?ciudadanoDNI=eq.${encodeURIComponent(dni)}`),
       http.get('/sedes'),
       http.get('/servicios'),
-      userId ? http.get(`/notificaciones?user_id=${userId}`) : Promise.resolve([]),
+      userId ? http.get(`/notificaciones?userId=eq.${userId}`) : Promise.resolve([]),
     ])
 
     tickets.value = citizenTickets.sort((a, b) => new Date(b.horaIngreso) - new Date(a.horaIngreso))
@@ -37,7 +37,7 @@ async function loadDashboard() {
     notificaciones.value = notes.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
 
     if (activeTicket.value) {
-      queue.value = await http.get(`/turnos?sede_id=${activeTicket.value.sedeId}&servicioId=${activeTicket.value.servicioId}&estado=en_espera`)
+      queue.value = await http.get(`/turnos?sedeId=eq.${activeTicket.value.sedeId}&servicioId=eq.${activeTicket.value.servicioId}&estado=eq.en_espera`)
       queue.value.sort((a, b) => new Date(a.horaIngreso) - new Date(b.horaIngreso))
     }
   } finally {
