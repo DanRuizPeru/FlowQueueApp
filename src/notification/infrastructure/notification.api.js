@@ -3,7 +3,7 @@ import { Notification } from '@/notification/domain/Notification.js'
 
 export async function getNotifications(userId) {
   try {
-    const data = await http.get(`/notificaciones?userId=${userId}`)
+    const data = await http.get(`/notificaciones?user_id=${userId}`)
     return data.map(n => new Notification(n))
   } catch (_) {
     return []
