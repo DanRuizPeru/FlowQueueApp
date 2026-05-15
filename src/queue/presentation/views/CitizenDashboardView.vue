@@ -1,10 +1,10 @@
 <script setup>
-import { computed, onMounted, ref } from 'vue'
-import { useRouter } from 'vue-router'
+import {computed, onMounted, ref} from 'vue'
+import {useRouter} from 'vue-router'
 import AppLayout from '@/shared/components/AppLayout.vue'
-import { useAuthStore } from '@/iam/application/auth.store.js'
-import { http } from '@/shared/services/http.js'
-import { formatTime } from '@/shared/utils/format.js'
+import {useAuthStore} from '@/iam/application/auth.store.js'
+import {http} from '@/shared/services/http.js'
+import {formatTime} from '@/shared/utils/format.js'
 
 const router = useRouter()
 const auth = useAuthStore()
@@ -21,14 +21,16 @@ onMounted(loadDashboard)
 async function loadDashboard() {
   loading.value = true
   try {
-    const dni = auth.user?.dni ?? '76543210'
-    const userId = auth.user?.id
+    // Sanitizamos los datos de entrada para evitar saltos de línea invisibles (\r\n)
+    const dni = String(auth.user?.dni ?? '76543210').trim()
+    const userId = auth.user?.id ? String(auth.user.id).trim() : null
 
+    // Adaptación a la sintaxis PostgREST de Supabase (uso de '=eq.')
     const [citizenTickets, sedeList, serviceList, notes] = await Promise.all([
-      http.get(`/turnos?ciudadanoDNI=eq.${encodeURIComponent(dni)}`),
+      http.get(`/turnos?ciudadano_dni=eq.${encodeURIComponent(dni)}`),
       http.get('/sedes'),
       http.get('/servicios'),
-      userId ? http.get(`/notificaciones?userId=eq.${userId}`) : Promise.resolve([]),
+      userId ? http.get(`/notificaciones?user_id=eq.${userId}`) : Promise.resolve([]),
     ])
 
     tickets.value = citizenTickets.sort((a, b) => new Date(b.horaIngreso) - new Date(a.horaIngreso))
@@ -37,9 +39,17 @@ async function loadDashboard() {
     notificaciones.value = notes.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
 
     if (activeTicket.value) {
-      queue.value = await http.get(`/turnos?sedeId=eq.${activeTicket.value.sedeId}&servicioId=eq.${activeTicket.value.servicioId}&estado=eq.en_espera`)
+      const activeSedeId = String(activeTicket.value.sedeId).trim()
+      const activeServicioId = String(activeTicket.value.servicioId).trim()
+
+      // Multi-filtrado en PostgREST uniendo parámetros con '&' y asignando 'eq.' a cada uno
+      queue.value = await http.get(
+          `/turnos?sede_id=eq.${activeSedeId}&servicioId=eq.${activeServicioId}&estado=eq.en_espera`
+      )
       queue.value.sort((a, b) => new Date(a.horaIngreso) - new Date(b.horaIngreso))
     }
+  } catch (error) {
+    console.error("Error cargando el dashboard:", error)
   } finally {
     loading.value = false
   }
@@ -136,7 +146,8 @@ function getServiceName(serviceId) {
           <span class="hero-kicker">Panel ciudadano</span>
           <h1>Gestiona tus trámites sin esperar de más</h1>
           <p>
-            Consulta tu turno activo, revisa tu posición en cola y encuentra nuevas entidades disponibles desde un solo lugar.
+            Consulta tu turno activo, revisa tu posición en cola y encuentra nuevas entidades disponibles desde un solo
+            lugar.
           </p>
           <div class="hero-actions">
             <button class="btn btn-primary" @click="router.push('/citizen/buscar-entidad')">Buscar entidad</button>
@@ -186,7 +197,8 @@ function getServiceName(serviceId) {
               <h2>Seguimiento de turno</h2>
               <p>Información principal de tu atención actual.</p>
             </div>
-            <span v-if="activeTicket" class="badge" :class="statusClass(activeTicket.estado)">{{ statusLabel(activeTicket.estado) }}</span>
+            <span v-if="activeTicket" class="badge"
+                  :class="statusClass(activeTicket.estado)">{{ statusLabel(activeTicket.estado) }}</span>
           </div>
 
           <div v-if="activeTicket" class="ticket-panel">
@@ -284,6 +296,7 @@ function getServiceName(serviceId) {
 </template>
 
 <style scoped>
+/* Los estilos se mantienen idénticos */
 .dashboard-loading {
   min-height: 320px;
   display: flex;
@@ -293,6 +306,7 @@ function getServiceName(serviceId) {
   gap: 1rem;
   color: var(--text-muted);
 }
+
 .spinner {
   width: 36px;
   height: 36px;
@@ -301,7 +315,13 @@ function getServiceName(serviceId) {
   border-radius: 50%;
   animation: spin .8s linear infinite;
 }
-@keyframes spin { to { transform: rotate(360deg); } }
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 .hero-card {
   padding: 1.6rem;
   margin-bottom: 1rem;
@@ -312,6 +332,7 @@ function getServiceName(serviceId) {
   background: linear-gradient(135deg, #ffffff 0%, #eef6ff 100%);
   overflow: hidden;
 }
+
 .hero-kicker {
   display: inline-flex;
   color: var(--primary);
@@ -322,24 +343,28 @@ function getServiceName(serviceId) {
   padding: .28rem .7rem;
   margin-bottom: .85rem;
 }
+
 .hero-content h1 {
   font-size: 1.85rem;
   line-height: 1.1;
   color: #0f172a;
   margin-bottom: .55rem;
 }
+
 .hero-content p {
   max-width: 620px;
   color: var(--text-muted);
   font-size: .92rem;
   line-height: 1.55;
 }
+
 .hero-actions {
   display: flex;
   gap: .65rem;
   margin-top: 1.15rem;
   flex-wrap: wrap;
 }
+
 .hero-ticket {
   border-radius: 16px;
   background: #071f33;
@@ -350,6 +375,7 @@ function getServiceName(serviceId) {
   justify-content: center;
   box-shadow: var(--shadow-md);
 }
+
 .hero-ticket span {
   font-size: .75rem;
   color: #9fb3c8;
@@ -357,26 +383,34 @@ function getServiceName(serviceId) {
   text-transform: uppercase;
   letter-spacing: .06em;
 }
+
 .hero-ticket strong {
   font-size: 2.35rem;
   line-height: 1;
   margin: .5rem 0;
 }
+
 .hero-ticket small {
   color: #cbd5e1;
   line-height: 1.4;
 }
-.hero-ticket.empty strong { font-size: 1.45rem; }
+
+.hero-ticket.empty strong {
+  font-size: 1.45rem;
+}
+
 .stats-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 1rem;
   margin-bottom: 1rem;
 }
+
 .stat-card {
   padding: 1rem;
   border-left: 4px solid var(--primary);
 }
+
 .stat-label {
   display: block;
   color: var(--text-muted);
@@ -385,28 +419,33 @@ function getServiceName(serviceId) {
   text-transform: uppercase;
   letter-spacing: .05em;
 }
+
 .stat-card strong {
   display: block;
   font-size: 2rem;
   color: #0f172a;
   margin: .35rem 0 .2rem;
 }
+
 .stat-card small {
   color: var(--text-muted);
   font-size: .76rem;
 }
+
 .dashboard-grid {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 360px;
   gap: 1rem;
   margin-bottom: 1rem;
 }
+
 .active-card,
 .quick-actions,
 .notifications-panel,
 .history-card {
   padding: 1.25rem;
 }
+
 .section-head {
   display: flex;
   align-items: flex-start;
@@ -414,21 +453,28 @@ function getServiceName(serviceId) {
   gap: 1rem;
   margin-bottom: 1rem;
 }
-.section-head.compact { margin-bottom: .8rem; }
+
+.section-head.compact {
+  margin-bottom: .8rem;
+}
+
 h2 {
   font-size: 1rem;
   color: #0f172a;
   margin-bottom: .25rem;
 }
+
 .section-head p {
   color: var(--text-muted);
   font-size: .78rem;
 }
+
 .ticket-panel {
   display: grid;
   grid-template-columns: 210px minmax(0, 1fr);
   gap: 1rem;
 }
+
 .ticket-code-block {
   background: #eff6ff;
   border: 1px solid #bfdbfe;
@@ -439,40 +485,47 @@ h2 {
   align-items: center;
   padding: 1rem;
 }
+
 .ticket-code-block span {
   color: #1d4ed8;
   font-size: .72rem;
   font-weight: 900;
   text-transform: uppercase;
 }
+
 .ticket-code-block strong {
   color: #1d6fe9;
   font-size: 2.6rem;
   line-height: 1;
   margin-top: .4rem;
 }
+
 .tracking-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: .7rem;
   grid-column: 2;
 }
+
 .tracking-grid div {
   background: #f8fafc;
   border: 1px solid var(--border);
   border-radius: 12px;
   padding: .9rem;
 }
+
 .tracking-grid span {
   display: block;
   color: var(--text-muted);
   font-size: .7rem;
   margin-bottom: .3rem;
 }
+
 .tracking-grid strong {
   color: #0f172a;
   font-size: 1.15rem;
 }
+
 .detail-list {
   grid-column: 1 / -1;
   border-top: 1px solid var(--border);
@@ -480,14 +533,22 @@ h2 {
   display: grid;
   gap: .55rem;
 }
+
 .detail-list p {
   display: grid;
   grid-template-columns: 110px 1fr;
   gap: 1rem;
   font-size: .82rem;
 }
-.detail-list span { color: var(--text-muted); }
-.detail-list strong { color: var(--text); }
+
+.detail-list span {
+  color: var(--text-muted);
+}
+
+.detail-list strong {
+  color: var(--text);
+}
+
 .empty-state {
   min-height: 260px;
   display: flex;
@@ -496,14 +557,27 @@ h2 {
   justify-content: center;
   text-align: center;
 }
-.empty-state h3 { color: #0f172a; margin-bottom: .4rem; }
-.empty-state p { color: var(--text-muted); margin-bottom: 1rem; }
+
+.empty-state h3 {
+  color: #0f172a;
+  margin-bottom: .4rem;
+}
+
+.empty-state p {
+  color: var(--text-muted);
+  margin-bottom: 1rem;
+}
+
 .side-column {
   display: flex;
   flex-direction: column;
   gap: 1rem;
 }
-.quick-actions h2 { margin-bottom: .85rem; }
+
+.quick-actions h2 {
+  margin-bottom: .85rem;
+}
+
 .quick-actions button {
   width: 100%;
   border: 1px solid var(--border);
@@ -517,39 +591,54 @@ h2 {
   cursor: pointer;
   transition: border-color .15s, color .15s, background .15s;
 }
+
 .quick-actions button:hover {
   border-color: #bfdbfe;
   color: var(--primary);
   background: #eff6ff;
 }
+
 .notification-list {
   display: grid;
   gap: .55rem;
 }
+
 .notification-item {
   padding: .78rem .85rem;
   border-radius: 10px;
   border: 1px solid var(--border);
   background: #f8fafc;
 }
+
 .notification-item strong {
   display: block;
   font-size: .8rem;
   color: #0f172a;
   margin-bottom: .2rem;
 }
+
 .notification-item span {
   display: block;
   color: var(--text-muted);
   font-size: .74rem;
   line-height: 1.35;
 }
-.notification-item.warning { background: #fff7ed; border-color: #fed7aa; }
-.notification-item.info { background: #eff6ff; border-color: #bfdbfe; }
+
+.notification-item.warning {
+  background: #fff7ed;
+  border-color: #fed7aa;
+}
+
+.notification-item.info {
+  background: #eff6ff;
+  border-color: #bfdbfe;
+}
+
 .ticket-table {
   display: grid;
   gap: .35rem;
 }
+
 .table-row {
   display: grid;
   grid-template-columns: 110px 1.2fr 1.3fr 90px 110px;
@@ -561,7 +650,11 @@ h2 {
   font-size: .8rem;
   color: var(--text-muted);
 }
-.table-row strong { color: #0f172a; }
+
+.table-row strong {
+  color: #0f172a;
+}
+
 .table-head {
   border: none;
   padding-top: 0;
@@ -572,33 +665,45 @@ h2 {
   text-transform: uppercase;
   letter-spacing: .04em;
 }
+
 .muted-empty {
   color: var(--text-muted);
   font-size: .82rem;
 }
-@media(max-width: 1100px) {
+
+@media (max-width: 1100px) {
   .hero-card,
   .dashboard-grid {
     grid-template-columns: 1fr;
   }
+
   .stats-grid {
     grid-template-columns: repeat(2, 1fr);
   }
 }
-@media(max-width: 760px) {
+
+@media (max-width: 760px) {
   .stats-grid,
   .ticket-panel,
   .tracking-grid {
     grid-template-columns: 1fr;
   }
+
   .tracking-grid,
   .detail-list {
     grid-column: auto;
   }
+
   .table-row {
     grid-template-columns: 1fr;
   }
-  .table-head { display: none; }
-  .hero-content h1 { font-size: 1.45rem; }
+
+  .table-head {
+    display: none;
+  }
+
+  .hero-content h1 {
+    font-size: 1.45rem;
+  }
 }
 </style>
