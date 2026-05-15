@@ -13,7 +13,7 @@ const loading = ref(false)
 function routeByRole(user) {
   if (user.isOperator) return '/operator'
   if (user.isSupervisor) return '/supervisor'
-  return '/citizen/buscar-entidad'
+  return '/citizen'
 }
 
 async function handleLogin() {

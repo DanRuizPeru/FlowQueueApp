@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
 
 function homeByRole(user) {
+  if (user?.rol === 'citizen') return '/citizen'
   if (user?.rol === 'operator') return '/operator'
   if (user?.rol === 'supervisor') return '/supervisor'
   return '/citizen/buscar-entidad'
@@ -23,7 +24,7 @@ const routes = [
   /* ── Citizen ── */
   {
     path: '/citizen',
-    redirect: '/citizen/buscar-entidad',
+    component: () => import('@/queue/presentation/views/CitizenDashboardView.vue'),
     meta: { role: 'citizen' },
   },
   {
