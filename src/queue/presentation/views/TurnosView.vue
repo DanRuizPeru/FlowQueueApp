@@ -12,7 +12,7 @@ const filtro  = ref('todos')
 const busqueda = ref('')
 
 onMounted(async () => {
-  turnos.value = await http.get(`/turnos?sedeId=${auth.user.sedeId}`)
+  turnos.value = await http.get(`/turnos?sede_id=${auth.user.sedeId}`)
   loading.value = false
 })
 
