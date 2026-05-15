@@ -3,13 +3,13 @@ import { Turno } from '@/queue/domain/models/Turno.js'
 import { TicketAssembler } from '@/queue/infrastructure/ticket.assembler.js'
 
 export async function getQueue(sedeId, servicioId = null) {
-  const serviceFilter = servicioId ? `&servicioId=${servicioId}` : ''
-  const data = await http.get(`/turnos?sedeId=${sedeId}${serviceFilter}&estado=en_espera`)
+  const serviceFilter = servicioId ? `&servicio_id=${servicioId}` : ''
+  const data = await http.get(`/turnos?sede_id=${sedeId}${serviceFilter}&estado=en_espera`)
   return TicketAssembler.toEntities(data).sort((a, b) => new Date(a.horaIngreso) - new Date(b.horaIngreso))
 }
 
 export async function getCurrentTicket(mostradorId) {
-  const data = await http.get(`/turnos?mostradorId=${mostradorId}&estado=en_atencion`)
+  const data = await http.get(`/turnos?mostrador_id=${mostradorId}&estado=en_atencion`)
   return data.length ? new Turno(data[0]) : null
 }
 
@@ -24,12 +24,12 @@ export async function getTicketByCode(code) {
 }
 
 export async function getTicketsByCitizen(dni) {
-  const data = await http.get(`/turnos?ciudadanoDNI=${encodeURIComponent(dni)}`)
+  const data = await http.get(`/turnos?ciudadano_dni=${encodeURIComponent(dni)}`)
   return TicketAssembler.toEntities(data).sort((a, b) => new Date(b.horaIngreso) - new Date(a.horaIngreso))
 }
 
 export async function getTodayTickets(sedeId) {
-  const data = await http.get(`/turnos?sedeId=${sedeId}`)
+  const data = await http.get(`/turnos?sede_id=${sedeId}`)
   return TicketAssembler.toEntities(data).sort((a, b) => new Date(b.horaIngreso) - new Date(a.horaIngreso))
 }
 
